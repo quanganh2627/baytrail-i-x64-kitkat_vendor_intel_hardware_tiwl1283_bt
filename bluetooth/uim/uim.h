@@ -13,7 +13,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program;if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifndef UIM_H
@@ -65,6 +65,13 @@
 
 /* use it for string lengths and buffers */
 #define UART_DEV_NAME_LEN	32
+/* BD address length in format xx:xx:xx:xx:xx:xx */
+#define BD_ADDR_LEN		17
+/* BD address length in binary */
+#define BD_ADDR_BIN_LEN 6
+/* Path to bd address provisioning file */
+#define BD_PATH "/system/etc/bluetooth"
+
 
 /* the sysfs entries with device configuration set by
  * shared transport driver
@@ -75,64 +82,64 @@
 #define FLOW_CTRL_SYSFS "/sys/devices/platform/kim/flow_cntrl"
 
 #ifdef ANDROID
-	#define VERBOSE
-	/*Debug logs*/
-	#define UIM_ERR(fmt, arg...)  LOGE("uim:"fmt"\n" , ##arg)
-	#if defined(UIM_DEBUG)		/* limited debug messages */
-	#define UIM_START_FUNC()      LOGV("uim: Inside %s", __FUNCTION__)
-	#define UIM_DBG(fmt, arg...)  LOGD("uim:"fmt"\n" , ## arg)
-	#define UIM_VER(fmt, arg...)
-	#elif defined(VERBOSE)		/* very verbose */
-	#define UIM_START_FUNC()      LOGV("uim:@ %s\n", __FUNCTION__)
-	#define UIM_DBG(fmt, arg...)  LOGD("uim:"fmt"\n" , ## arg)
-	#define UIM_VER(fmt, arg...)  LOGV("uim:"fmt"\n" , ## arg)
-	#else /* error msgs only */
-	#define UIM_START_FUNC()
-	#define UIM_DBG(fmt, arg...)
-	#define UIM_VER(fmt, arg...)
-	#endif
+#define VERBOSE
+/*Debug logs*/
+#define UIM_ERR(fmt, arg...)  LOGE(fmt"\n" , ##arg)
+#if defined(UIM_DEBUG)		/* limited debug messages */
+#define UIM_START_FUNC()      LOGV("Inside %s", __FUNCTION__)
+#define UIM_DBG(fmt, arg...)  LOGD(fmt"\n" , ## arg)
+#define UIM_VER(fmt, arg...)
+#elif defined(VERBOSE)		/* very verbose */
+#define UIM_START_FUNC()      LOGV("@ %s\n", __FUNCTION__)
+#define UIM_DBG(fmt, arg...)  LOGD(fmt"\n" , ## arg)
+#define UIM_VER(fmt, arg...)  LOGV(fmt"\n" , ## arg)
+#else /* error msgs only */
+#define UIM_START_FUNC()
+#define UIM_DBG(fmt, arg...)
+#define UIM_VER(fmt, arg...)
+#endif
 #else
-	#define VERBOSE
-	/*Debug logs*/
-	#define UIM_ERR(fmt, arg...)  printf("uim:"fmt"\n" , ##arg)
-	#if defined(UIM_DEBUG)		/* limited debug messages */
-	#define UIM_START_FUNC()      printf("uim: Inside %s", __FUNCTION__)
-	#define UIM_DBG(fmt, arg...)  printf("uim:"fmt"\n" , ## arg)
-	#define UIM_VER(fmt, arg...)
-	#elif defined(VERBOSE)		/* very verbose */
-	#define UIM_START_FUNC()      printf("uim:@ %s\n", __FUNCTION__)
-	#define UIM_DBG(fmt, arg...)  printf("uim:"fmt"\n" , ## arg)
-	#define UIM_VER(fmt, arg...)  printf("uim:"fmt"\n" , ## arg)
-	#else /* error msgs only */
-	#define UIM_START_FUNC()
-	#define UIM_DBG(fmt, arg...)
-	#define UIM_VER(fmt, arg...)
-	#endif
+#define VERBOSE
+/*Debug logs*/
+#define UIM_ERR(fmt, arg...)  printf("uim:"fmt"\n" , ##arg)
+#if defined(UIM_DEBUG)		/* limited debug messages */
+#define UIM_START_FUNC()      printf("uim: Inside %s", __FUNCTION__)
+#define UIM_DBG(fmt, arg...)  printf("uim:"fmt"\n" , ## arg)
+#define UIM_VER(fmt, arg...)
+#elif defined(VERBOSE)		/* very verbose */
+#define UIM_START_FUNC()      printf("uim:@ %s\n", __FUNCTION__)
+#define UIM_DBG(fmt, arg...)  printf("uim:"fmt"\n" , ## arg)
+#define UIM_VER(fmt, arg...)  printf("uim:"fmt"\n" , ## arg)
+#else /* error msgs only */
+#define UIM_START_FUNC()
+#define UIM_DBG(fmt, arg...)
+#define UIM_VER(fmt, arg...)
+#endif
 #endif
 
 /* HCI command header*/
 typedef struct {
-        uint16_t        opcode;         /* OCF & OGF */
-        uint8_t         plen;
+	uint16_t        opcode;         /* OCF & OGF */
+	uint8_t         plen;
 } __attribute__ ((packed))      hci_command_hdr;
 
 /* HCI event header*/
 typedef struct {
-        uint8_t         evt;
-        uint8_t         plen;
+	uint8_t         evt;
+	uint8_t         plen;
 } __attribute__ ((packed))      hci_event_hdr;
 
 /* HCI command complete event*/
 typedef struct {
-        uint8_t         ncmd;
-        uint16_t        opcode;
+	uint8_t         ncmd;
+	uint16_t        opcode;
 } __attribute__ ((packed)) evt_cmd_complete;
 
 /* HCI event status*/
 typedef struct {
-        uint8_t         status;
-        uint8_t         ncmd;
-        uint16_t        opcode;
+	uint8_t         status;
+	uint8_t         ncmd;
+	uint16_t        opcode;
 } __attribute__ ((packed)) evt_cmd_status;
 
 /* HCI Event structure to set the cusrom baud rate*/
@@ -153,14 +160,14 @@ typedef struct {
 
 /* BD address structure to set the uim BD address*/
 typedef struct {
-        unsigned char b[6];
+	unsigned char b[6];
 } __attribute__((packed)) bdaddr_t;
 
 /* HCI Command structure to set the uim BD address*/
 typedef struct {
-        uint8_t uart_prefix;
-        hci_command_hdr hci_hdr;
-        bdaddr_t addr;
+	uint8_t uart_prefix;
+	hci_command_hdr hci_hdr;
+	bdaddr_t addr;
 } __attribute__ ((packed)) uim_bdaddr_change_cmd;\
 
 #endif /* UIM_H */

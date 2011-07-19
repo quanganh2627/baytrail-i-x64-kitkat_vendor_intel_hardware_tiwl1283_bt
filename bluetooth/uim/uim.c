@@ -15,7 +15,7 @@
  *  along with this program;if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-//#undef ANDROID
+
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -36,9 +36,7 @@
 #endif
 
 #include "uim.h"
-#ifdef BUILD_WITH_CHAABI_SUPPORT
-#include "umip_access.h";
-#endif
+
 /* Maintains the exit state of UIM*/
 static int exiting;
 #define UIM_DEBUG
@@ -48,9 +46,10 @@ static int exiting;
 static int line_discipline;
 static int dev_fd;
 
-#ifdef BUILD_WITH_CHAABI_SUPPORT
+/* BD address as string and a pointer to array of hex bytes */
+char uim_bd_address[BD_ADDR_LEN];
 bdaddr_t *bd_addr;
-#endif
+
 /*****************************************************************************/
 #ifdef UIM_DEBUG
 /*  Function to Read the firmware version
@@ -64,8 +63,8 @@ void read_firmware_version(int dev_fd)
 	unsigned char buffer[] = { 0x01, 0x01, 0x10, 0x00 };
 
 	UIM_START_FUNC();
-	UIM_VER(" wrote %d bytes", (int)write(dev_fd, buffer, 4));
-	UIM_VER(" reading %d bytes", (int)read(dev_fd, resp_buffer, 15));
+	UIM_VER(" wrote %d bytes", (int) write(dev_fd, buffer, 4));
+	UIM_VER(" reading %d bytes", (int) read(dev_fd, resp_buffer, 15));
 
 	for (index = 0; index < 15; index++)
 		UIM_VER(" %x ", resp_buffer[index]);
@@ -86,7 +85,7 @@ int read_hci_event(int fd, unsigned char *buf, int size)
 	int count = 0;
 	int reading = 1;
 	int rd_retry_count = 0;
-	struct timespec tm = {0, 50*1000*1000};
+	struct timespec tm = { 0, 50 * 1000 * 1000 };
 
 	UIM_START_FUNC();
 
@@ -148,7 +147,7 @@ static int read_command_complete(int fd, unsigned short opcode)
 	UIM_START_FUNC();
 
 	UIM_VER(" Command complete started");
-	if (read_hci_event(fd, (unsigned char *)&resp, sizeof(resp)) < 0) {
+	if (read_hci_event(fd, (unsigned char *) &resp, sizeof(resp)) < 0) {
 		UIM_ERR(" Invalid response");
 		return -1;
 	}
@@ -157,7 +156,7 @@ static int read_command_complete(int fd, unsigned short opcode)
 	if (resp.uart_prefix != HCI_EVENT_PKT) {
 		UIM_ERR
 			(" Error in response: not an event packet, but 0x%02x!",
-			 resp.uart_prefix);
+				resp.uart_prefix);
 		return -1;
 	}
 
@@ -166,7 +165,7 @@ static int read_command_complete(int fd, unsigned short opcode)
 		/* event must be event-complete */
 		UIM_ERR
 			(" Error in response: not a cmd-complete event,but 0x%02x!",
-			 resp.hci_hdr.evt);
+				resp.hci_hdr.evt);
 		return -1;
 	}
 
@@ -177,7 +176,7 @@ static int read_command_complete(int fd, unsigned short opcode)
 		return -1;
 	}
 
-	if (resp.cmd_complete.opcode != (unsigned short)opcode) {
+	if (resp.cmd_complete.opcode != (unsigned short) opcode) {
 		UIM_ERR(" Error in response: opcode is 0x%04x, not 0x%04x!",
 				resp.cmd_complete.opcode, opcode);
 		return -1;
@@ -307,7 +306,7 @@ int st_uart_config(unsigned char install)
 			close(fd);
 			return len;
 		}
-		sscanf((const char*)buf, "%s", uart_dev_name);
+		sscanf((const char *) buf, "%s", uart_dev_name);
 		close(fd);
 
 		memset(buf, 0, UART_DEV_NAME_LEN);
@@ -323,7 +322,7 @@ int st_uart_config(unsigned char install)
 			return len;
 		}
 		close(fd);
-		sscanf((const char*)buf, "%ld", &cust_baud_rate);
+		sscanf((const char *) buf, "%ld", &cust_baud_rate);
 
 		memset(buf, 0, UART_DEV_NAME_LEN);
 		fd = open(FLOW_CTRL_SYSFS, O_RDONLY);
@@ -339,7 +338,7 @@ int st_uart_config(unsigned char install)
 			return len;
 		}
 		close(fd);
-		sscanf((const char*)buf, "%d", &flow_ctrl);
+		sscanf((const char *) buf, "%d", &flow_ctrl);
 
 		UIM_VER(" signal received, opening %s", uart_dev_name);
 
@@ -361,7 +360,7 @@ int st_uart_config(unsigned char install)
 			return -1;
 		}
 
-		fcntl(dev_fd, F_SETFL,fcntl(dev_fd, F_GETFL) | O_NONBLOCK);
+		fcntl(dev_fd, F_SETFL, fcntl(dev_fd, F_GETFL) | O_NONBLOCK);
 		/* Set only the custom baud rate */
 		if (cust_baud_rate != 115200) {
 
@@ -400,8 +399,8 @@ int st_uart_config(unsigned char install)
 				return -1;
 			}
 
-#ifdef BUILD_WITH_CHAABI_SUPPORT
-			if (bd_addr != NULL) {
+			/* Set the uim BD address */
+			if (bd_addr) {
 
 				memset(&addr_cmd, 0, sizeof(addr_cmd));
 				/* Forming the packet for change BD address command*/
@@ -426,12 +425,11 @@ int st_uart_config(unsigned char install)
 					close(dev_fd);
 					return -1;
 				}
-				UIM_VER("BD address changed to %02X:%02X:%02X:%02X:%02X:%02X",
-						bd_addr->b[0], bd_addr->b[1], bd_addr->b[2],
-						bd_addr->b[3], bd_addr->b[4], bd_addr->b[5]);
-			} else
-				UIM_DBG("Pursuing with default chip bd address");
-#endif
+				UIM_VER("BD address changed to "
+						"%02X:%02X:%02X:%02X:%02X:%02X", bd_addr->b[0],
+						bd_addr->b[1], bd_addr->b[2], bd_addr->b[3],
+						bd_addr->b[4], bd_addr->b[5]);
+			}
 #ifdef UIM_DEBUG
 			read_firmware_version(dev_fd);
 #endif
@@ -447,8 +445,7 @@ int st_uart_config(unsigned char install)
 			return -1;
 		}
 		UIM_DBG("Installed N_TI_WL Line displine");
-	}
-	else {
+	} else {
 		UIM_DBG("Un-Installed N_TI_WL Line displine");
 		/* UNINSTALL_N_TI_WL - When the Signal is received from KIM */
 		/* closing UART fd */
@@ -457,54 +454,64 @@ int st_uart_config(unsigned char install)
 	return 0;
 }
 
+/* Function to convert the BD address from ascii to hex value */
+bdaddr_t *strtoba(const char *str)
+{
+	uint8_t *ba = malloc(sizeof(bdaddr_t));
+	if (ba) {
+		if (sscanf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
+				&ba[0], &ba[1], &ba[2],
+				&ba[3], &ba[4], &ba[5]) != sizeof(bdaddr_t)) {
+			free (ba);
+			ba = NULL;
+		}
+	}
+	return (bdaddr_t *) ba;
+}
+
 /*****************************************************************************/
 int main(int argc, char *argv[])
 {
 	int st_fd, err;
 	unsigned char install, previous;
-	struct pollfd 	p;
-#ifdef BUILD_WITH_CHAABI_SUPPORT
+	struct pollfd p;
 	unsigned int i;
+	/* List of invalid BD addresses */
 	const bdaddr_t bd_address_ignored[] = {
-		{{0x00, 0x00, 0x00, 0x00, 0x00, 0x00} },
-		{{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF} } };
-#endif
+			{ { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } },
+			{ { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF } } };
+
 	UIM_START_FUNC();
+	bd_addr = NULL;
 	err = 0;
 
 	/* Parse the user input */
-	if ((argc > 1)) {
-		UIM_ERR("Invalid arguements");
+	if ((argc > 2)) {
+		UIM_ERR("Invalid arguments");
+		UIM_ERR("Usage: uim <bd address>");
 		return -1;
 	}
-#ifdef BUILD_WITH_CHAABI_SUPPORT
-	bd_addr = NULL;
-	/* Get bd address from secured location */
-	err = get_customer_data(
-			ACD_BT_MAC_ADDR_FIELD_INDEX, (void ** const)&bd_addr);
-	if ((err < 0) || (bd_addr == NULL)) {
-		UIM_ERR("Unable to retrieve bd address: error %d", err);
-		if (bd_addr != NULL)
-			free(bd_addr);
-		bd_addr = NULL;
-	/* If data was actually retrieved */
-	} else {
+	if (argc == 2) {
+		if (strlen(argv[1]) != BD_ADDR_LEN) {
+			UIM_ERR("Usage: uim XX:XX:XX:XX:XX:XX");
+			return -1;
+		}
+		/* BD address passed as string in xx:xx:xx:xx:xx:xx format */
+		strncpy(uim_bd_address, argv[1], sizeof(uim_bd_address));
+		bd_addr = strtoba(uim_bd_address);
+	}
 
-		UIM_DBG("Read bd address from umip secured location: "
-				"%02X:%02X:%02X:%02X:%02X:%02X",
-		bd_addr->b[0], bd_addr->b[1], bd_addr->b[2],
-		bd_addr->b[3], bd_addr->b[4], bd_addr->b[5]);
-
+	if (bd_addr) {
 		/* Check if read value has to be ignored */
-		for (i = 0; i < (sizeof(bd_address_ignored)/sizeof(bdaddr_t)); i++) {
+		for (i = 0; i < (sizeof(bd_address_ignored) / sizeof(bdaddr_t)); i++) {
 
-			if (memcmp(&bd_address_ignored[i],
-					bd_addr, sizeof(bdaddr_t)) == 0) {
+			if (memcmp(&bd_address_ignored[i], bd_addr, sizeof(bdaddr_t)) == 0) {
 
-				UIM_DBG("Pursuing with default chip bd address: stored "
-						"value %02X:%02X:%02X:%02X:%02X:%02X was ignored",
-				bd_addr->b[0], bd_addr->b[1], bd_addr->b[2],
-				bd_addr->b[3], bd_addr->b[4], bd_addr->b[5]);
+				UIM_DBG("Stored value "
+						"%02X:%02X:%02X:%02X:%02X:%02X was ignored",
+						bd_addr->b[0], bd_addr->b[1], bd_addr->b[2],
+						bd_addr->b[3], bd_addr->b[4], bd_addr->b[5]);
+				UIM_DBG("Using default chip bd address");
 
 				free(bd_addr);
 				bd_addr = NULL;
@@ -512,10 +519,11 @@ int main(int argc, char *argv[])
 				break;
 			}
 		}
-	}
-#else
-	UIM_DBG("No CHAABI support: using chip default bd address");
-#endif
+		if (bd_addr)
+			UIM_DBG("Using %s bd address", uim_bd_address);
+	} else
+		UIM_DBG("Using default chip bd address");
+
 	line_discipline = N_TI_WL;
 
 	st_fd = open(INSTALL_SYSFS_ENTRY, O_RDONLY);
@@ -559,8 +567,7 @@ RE_POLL:
 		return -1;
 	}
 
-	if (!exiting)
-	{
+	if (!exiting) {
 		previous = install;
 		err = read(st_fd, &install, 1);
 		UIM_DBG("read %c from install (previously was %c)\n", install, previous);
@@ -574,9 +581,8 @@ RE_POLL:
 	}
 
 	close(st_fd);
-#ifdef BUILD_WITH_CHAABI_SUPPORT
-	if (bd_addr != NULL)
+	/* Free resources */
+	if (bd_addr)
 		free(bd_addr);
-#endif
 	return 0;
 }
