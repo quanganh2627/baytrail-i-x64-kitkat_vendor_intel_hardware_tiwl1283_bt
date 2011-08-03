@@ -284,9 +284,9 @@ static int set_custom_baud_rate(int dev_fd, int baud_rate, int flow_ctrl)
 int st_uart_config(unsigned char install)
 {
 	int ldisc, len, fd, flow_ctrl;
-	unsigned char buf[UART_DEV_NAME_LEN];
+	unsigned char buf[UART_DEV_NAME_LEN+1];
 	uim_speed_change_cmd cmd;
-	char uart_dev_name[UART_DEV_NAME_LEN];
+	char uart_dev_name[UART_DEV_NAME_LEN+1];
 	long cust_baud_rate;
 
 	uim_bdaddr_change_cmd addr_cmd;
@@ -294,7 +294,7 @@ int st_uart_config(unsigned char install)
 	UIM_START_FUNC();
 
 	if (install == '1') {
-		memset(buf, 0, UART_DEV_NAME_LEN);
+		memset(buf, 0, UART_DEV_NAME_LEN+1);
 		fd = open(DEV_NAME_SYSFS, O_RDONLY);
 		if (fd < 0) {
 			UIM_ERR("Can't open %s", DEV_NAME_SYSFS);
@@ -309,7 +309,7 @@ int st_uart_config(unsigned char install)
 		sscanf((const char *) buf, "%s", uart_dev_name);
 		close(fd);
 
-		memset(buf, 0, UART_DEV_NAME_LEN);
+		memset(buf, 0, UART_DEV_NAME_LEN+1);
 		fd = open(BAUD_RATE_SYSFS, O_RDONLY);
 		if (fd < 0) {
 			UIM_ERR("Can't open %s", BAUD_RATE_SYSFS);
@@ -324,7 +324,7 @@ int st_uart_config(unsigned char install)
 		close(fd);
 		sscanf((const char *) buf, "%ld", &cust_baud_rate);
 
-		memset(buf, 0, UART_DEV_NAME_LEN);
+		memset(buf, 0, UART_DEV_NAME_LEN+1);
 		fd = open(FLOW_CTRL_SYSFS, O_RDONLY);
 		if (fd < 0) {
 			UIM_ERR("Can't open %s", FLOW_CTRL_SYSFS);
@@ -458,14 +458,30 @@ int st_uart_config(unsigned char install)
 bdaddr_t *strtoba(const char *str)
 {
 	uint8_t *ba = malloc(sizeof(bdaddr_t));
+	unsigned int tmp_bd[BD_ADDR_BIN_LEN];
+	int i;
+
+
 	if (ba) {
+		memset(tmp_bd, 0, BD_ADDR_BIN_LEN);
 		if (sscanf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
-				&ba[0], &ba[1], &ba[2],
-				&ba[3], &ba[4], &ba[5]) != sizeof(bdaddr_t)) {
+				&tmp_bd[0], &tmp_bd[1], &tmp_bd[2],
+				&tmp_bd[3], &tmp_bd[4], &tmp_bd[5]) != sizeof(bdaddr_t)) {
 			free (ba);
 			ba = NULL;
+			goto exit;
 		}
+		for (i=0;i<BD_ADDR_BIN_LEN;i++){
+			if(tmp_bd[i] > 255){
+				free (ba);
+				ba = NULL;
+				goto exit;
+			}
+			ba[i] = (uint8_t) tmp_bd[i];
+		}
+
 	}
+exit:
 	return (bdaddr_t *) ba;
 }
 
