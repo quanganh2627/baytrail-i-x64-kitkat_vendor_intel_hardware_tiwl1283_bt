@@ -21,7 +21,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libc libcutils
 
 LOCAL_MODULE:= bd_prov
-LOCAL_MODULE_TAGS := eng
+LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_EXECUTABLE)
 
