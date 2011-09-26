@@ -18,7 +18,7 @@ LOCAL_STATIC_LIBRARIES := \
 endif
 LOCAL_CFLAGS += -m32
 LOCAL_SHARED_LIBRARIES := \
-	libc libcutils
+	libc libcutils libcrypto
 
 LOCAL_MODULE:= bd_prov
 LOCAL_MODULE_TAGS := optional
