@@ -47,7 +47,7 @@ static int line_discipline;
 static int dev_fd;
 
 /* BD address as string and a pointer to array of hex bytes */
-char uim_bd_address[BD_ADDR_LEN];
+char uim_bd_address[BD_ADDR_LEN+1];
 bdaddr_t *bd_addr;
 
 /*****************************************************************************/
@@ -328,7 +328,7 @@ int st_uart_config(unsigned char install)
 		fd = open(FLOW_CTRL_SYSFS, O_RDONLY);
 		if (fd < 0) {
 			UIM_ERR("Can't open %s", FLOW_CTRL_SYSFS);
-			close(fd);
+			/* As fd was not opened, it's not necessary to close it */
 			return -1;
 		}
 		len = read(fd, buf, UART_DEV_NAME_LEN);
@@ -513,7 +513,7 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 		/* BD address passed as string in xx:xx:xx:xx:xx:xx format */
-		strncpy(uim_bd_address, argv[1], sizeof(uim_bd_address));
+		strncpy(uim_bd_address, argv[1], BD_ADDR_LEN+1);
 		bd_addr = strtoba(uim_bd_address);
 	}
 
