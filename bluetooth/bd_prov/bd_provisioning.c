@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
 	res = get_customer_data(ACD_BT_MAC_ADDR_FIELD_INDEX,
 			(void ** const) &chaabi_bd_address);
-	if (res != BD_ADDRESS_LEN) {
+	if ((res != BD_ADDRESS_LEN) || !chaabi_bd_address) {
 		/* chaabi read error OR no chaabi support */
 		if (res < 0)
 			LOGE("Error retrieving chaabi bd address, "
