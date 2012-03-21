@@ -513,7 +513,7 @@ int main(int argc, char *argv[])
 			return -1;
 		}
 		/* BD address passed as string in xx:xx:xx:xx:xx:xx format */
-		strncpy(uim_bd_address, argv[1], BD_ADDR_LEN+1);
+		strncpy(uim_bd_address, argv[1], BD_ADDR_LEN);
 		/* ensure that null terminated is correctly set at end of buf */
 		uim_bd_address[BD_ADDR_LEN]='\0';
 		bd_addr = strtoba(uim_bd_address);
