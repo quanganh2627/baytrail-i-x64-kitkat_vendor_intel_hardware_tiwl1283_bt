@@ -297,7 +297,7 @@ int st_uart_config(unsigned char install)
 		memset(buf, 0, UART_DEV_NAME_LEN+1);
 		fd = open(DEV_NAME_SYSFS, O_RDONLY);
 		if (fd < 0) {
-			UIM_ERR("Can't open %s", DEV_NAME_SYSFS);
+			UIM_ERR("Can't open %s, error (%s)", DEV_NAME_SYSFS, strerror(errno));
 			return -1;
 		}
 		len = read(fd, buf, UART_DEV_NAME_LEN);
@@ -344,7 +344,7 @@ int st_uart_config(unsigned char install)
 
 		dev_fd = open(uart_dev_name, O_RDWR);
 		if (dev_fd < 0) {
-			UIM_ERR("Can't open %s", uart_dev_name);
+			UIM_ERR("Can't open %s, error (%s)", uart_dev_name, strerror(errno));
 			return -1;
 		}
 
@@ -384,10 +384,7 @@ int st_uart_config(unsigned char install)
 			}
 
 			/* Read the response for the Change speed command */
-			if (read_command_complete(dev_fd, HCI_HDR_OPCODE) < 0) {
-				close(dev_fd);
-				return -1;
-			}
+			read_command_complete(dev_fd, HCI_HDR_OPCODE);
 
 			UIM_VER(" Speed changed to %d", cust_baud_rate);
 
@@ -421,10 +418,8 @@ int st_uart_config(unsigned char install)
 				}
 
 				/* Read the response for the change BD address command */
-				if (read_command_complete(dev_fd, WRITE_BD_ADDR_OPCODE) < 0) {
-					close(dev_fd);
-					return -1;
-				}
+				read_command_complete(dev_fd, WRITE_BD_ADDR_OPCODE);
+
 				UIM_VER("BD address changed to "
 						"%02X:%02X:%02X:%02X:%02X:%02X", bd_addr->b[0],
 						bd_addr->b[1], bd_addr->b[2], bd_addr->b[3],
