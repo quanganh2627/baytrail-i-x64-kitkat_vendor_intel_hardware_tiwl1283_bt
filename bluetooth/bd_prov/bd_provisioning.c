@@ -34,17 +34,21 @@
 #define LOG_TAG "bd_prov"
 
 #define BD_ADDRESS_LEN 6
-#define UIM_ASCII_PARAM_LEN 22
 
 #define NO_ERR                       0
 #define ERR_WRONG_PARAM             -1
+
+#define BD_ADDR_FILE_NAME	"/factory/bt/bd_addr.conf"
+#define BD_LEN			18
 
 int main(int argc, char **argv)
 {
 	unsigned char *chaabi_bd_address = NULL;
 	int res = NO_ERR;
-	char uim_ascii_param[UIM_ASCII_PARAM_LEN];
 	char state[PROPERTY_VALUE_MAX];
+	FILE *bd_addr_file = NULL;
+	char *bd_addr_file_name = BD_ADDR_FILE_NAME;
+	char bd_address[BD_LEN] = "00:00:00:00:00:00";
 
 	/* Check parameters */
 	if (argc != 1) {
@@ -83,23 +87,29 @@ int main(int argc, char **argv)
 			"bd address diversification is not available");
 #endif
 
-	/* If uim is already running, stop it so it can be restarted */
-	property_get("init.svc.uim", state, "");
-	if (!strcmp("running", state)) {
-		LOGI("Stopping uim");
-		property_set("ctl.stop", "uim");
-	}
-
 	if (chaabi_bd_address) {
-		sprintf(uim_ascii_param, "uim:%02X:%02X:%02X:%02X:%02X:%02X",
+		/* write to file */
+		LOGD("Open file %s for writing\n", bd_addr_file_name);
+		bd_addr_file = fopen(bd_addr_file_name, "w");
+		if (bd_addr_file != NULL) {
+			snprintf(bd_address, sizeof(bd_address), "%02X:%02X:%02X:%02X:%02X:%02X",
 				chaabi_bd_address[0], chaabi_bd_address[1],
 				chaabi_bd_address[2], chaabi_bd_address[3],
 				chaabi_bd_address[4], chaabi_bd_address[5]);
-		LOGI("Starting %s...", uim_ascii_param);
-		property_set("ctl.start", uim_ascii_param);
+			res = fprintf(bd_addr_file, "%s", bd_address);
+			if (res)
+				LOGD("BD address written successfully");
+			else
+				LOGE("Error %s, failed to write BD address", strerror(errno));
+			fflush(bd_addr_file);
+			fclose(bd_addr_file);
+		}
+		else {
+			LOGE("Error %s while opening %s\n", strerror(errno), bd_addr_file_name);
+			return errno;
+		}
 	} else {
-		LOGI("Starting uim...");
-		property_set("ctl.start", "uim");
+		LOGE("No chaabi BD address");
 	}
 
 	return NO_ERR;
