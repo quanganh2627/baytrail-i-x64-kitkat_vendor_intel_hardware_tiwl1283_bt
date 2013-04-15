@@ -38,7 +38,7 @@
 #define NO_ERR                       0
 #define ERR_WRONG_PARAM             -1
 
-#define BD_ADDR_FILE_NAME	"/factory/bt/bd_addr.conf"
+#define BD_ADDR_FILE_NAME	"/config/bt/bd_addr.conf"
 #define BD_LEN			18
 
 int main(int argc, char **argv)
