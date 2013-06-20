@@ -70,7 +70,7 @@
 /* BD address length in binary */
 #define BD_ADDR_BIN_LEN 6
 /* Path to bd address provisioning file */
-#define BD_PATH "/system/etc/bluetooth"
+#define BD_PATH "/config/bt/bd_addr.conf"
 
 
 /* the sysfs entries with device configuration set by

@@ -512,6 +512,25 @@ int main(int argc, char *argv[])
 		/* ensure that null terminated is correctly set at end of buf */
 		uim_bd_address[BD_ADDR_LEN]='\0';
 		bd_addr = strtoba(uim_bd_address);
+	} else {
+		/* read BD address from bd provisioning file */
+		FILE *bd_prov_file = NULL;
+		char *bd_prov_file_name = BD_PATH;
+		size_t bd_size;
+		bd_prov_file = fopen(bd_prov_file_name, "r");
+		if (bd_prov_file) {
+			bd_size = fread(uim_bd_address, sizeof(char), BD_ADDR_LEN, bd_prov_file);
+			if (bd_size == BD_ADDR_LEN) {
+				uim_bd_address[BD_ADDR_LEN] = '\0';
+				bd_addr = strtoba(uim_bd_address);
+			} else {
+				UIM_ERR("Error while reading BD address from configuration file");
+			}
+			fclose(bd_prov_file);
+		} else {
+			/* No BD provisioning file is not necessarily an error */
+			UIM_DBG("No BD address configuration file found");
+		}
 	}
 
 	if (bd_addr) {
