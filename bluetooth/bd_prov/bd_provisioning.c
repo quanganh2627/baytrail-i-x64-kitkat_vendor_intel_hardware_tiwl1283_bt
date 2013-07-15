@@ -27,10 +27,6 @@
 #include <cutils/log.h>
 #include <cutils/properties.h>
 
-#ifdef BUILD_WITH_CHAABI_SUPPORT
-#include "umip_access.h"
-#endif
-
 #define LOG_TAG "bd_prov"
 
 #define BD_ADDRESS_LEN 6
@@ -41,14 +37,44 @@
 #define BD_ADDR_FILE_NAME	"/config/bt/bd_addr.conf"
 #define BD_LEN			18
 
+#if (BUILD_WITH_CHAABI_SUPPORT || BUILD_WITH_TXEI_SUPPORT)
+
+#include "umip_access.h"
+
+int get_bd_address(unsigned char **bd_addr_buf){
+	return get_customer_data(ACD_BT_MAC_ADDR_FIELD_INDEX,
+						(void ** const) bd_addr_buf);
+}
+
+#elif BUILD_WITH_TOKEN_SUPPORT
+
+#include "tee_token_if.h"
+
+#define TOKEN_DG_ID		12	// Group ID
+#define TOKEN_SG_ID		10	// Subgroup ID
+#define TOKEN_ITEM_ID		1	// Item ID
+
+int get_bd_address(unsigned char **bd_addr_buf){
+	int ret;
+	*bd_addr_buf = malloc(sizeof(char) * BD_ADDRESS_LEN);
+	ret = tee_token_item_read(TOKEN_DG_ID, TOKEN_SG_ID, TOKEN_ITEM_ID,
+					0, *bd_addr_buf, BD_ADDRESS_LEN, 0);
+	if (!ret)
+		return BD_ADDRESS_LEN;
+	return NULL;
+}
+
+#endif /* (BUILD_WITH_CHAABI_SUPPORT || BUILD_WITH_TXEI_SUPPORT) */
+
+
 int main(int argc, char **argv)
 {
-	unsigned char *chaabi_bd_address = NULL;
+	unsigned char *bd_addr_buf = NULL;
 	int res = NO_ERR;
 	char state[PROPERTY_VALUE_MAX];
 	FILE *bd_addr_file = NULL;
 	char *bd_addr_file_name = BD_ADDR_FILE_NAME;
-	char bd_address[BD_LEN] = "00:00:00:00:00:00";
+	char bd_address_str[BD_LEN] = "00:00:00:00:00:00";
 
 	/* Check parameters */
 	if (argc != 1) {
@@ -56,47 +82,39 @@ int main(int argc, char **argv)
 		return ERR_WRONG_PARAM;
 	}
 
-#ifdef BUILD_WITH_CHAABI_SUPPORT
+#if (BUILD_WITH_CHAABI_SUPPORT || BUILD_WITH_TOKEN_SUPPORT || BUILD_WITH_TXEI_SUPPORT)
 	/* Read BD address from Chaabi */
-
-	LOGV("Retrieving bd address from chaabi ...");
-
-	res = get_customer_data(ACD_BT_MAC_ADDR_FIELD_INDEX,
-			(void ** const) &chaabi_bd_address);
-	if ((res != BD_ADDRESS_LEN) || !chaabi_bd_address) {
+	LOGV("Retrieving BD address...");
+	res = get_bd_address(&bd_addr_buf);
+	if ((res != BD_ADDRESS_LEN) || !bd_addr_buf) {
 		/* chaabi read error OR no chaabi support */
 		if (res < 0)
-			LOGE("Error retrieving chaabi bd address, "
+			LOGE("Error retrieving BD address, "
 					"error %d", res);
 		else
-			LOGE("Error retrieving chaabi bd address, "
+			LOGE("Error retrieving BD address, "
 					"wrong length");
-		if (chaabi_bd_address) {
-			free(chaabi_bd_address);
-			chaabi_bd_address = NULL;
+		if (bd_addr_buf) {
+			free(bd_addr_buf);
+			bd_addr_buf = NULL;
 		}
 	} else {
-		LOGV("Bd address successfully retrieved from chaabi: "
+		LOGV("BD address successfully retrieved: "
 				"%02X:%02X:%02X:%02X:%02X:%02X",
-				chaabi_bd_address[0], chaabi_bd_address[1],
-				chaabi_bd_address[2], chaabi_bd_address[3],
-				chaabi_bd_address[4], chaabi_bd_address[5]);
+				bd_addr_buf[0], bd_addr_buf[1],
+				bd_addr_buf[2], bd_addr_buf[3],
+				bd_addr_buf[4], bd_addr_buf[5]);
 	}
-#else
-	LOGE("Chaabi not supported, "
-			"bd address diversification is not available");
-#endif
-
-	if (chaabi_bd_address) {
+	if (bd_addr_buf) {
 		/* write to file */
 		LOGD("Open file %s for writing\n", bd_addr_file_name);
 		bd_addr_file = fopen(bd_addr_file_name, "w");
 		if (bd_addr_file != NULL) {
-			snprintf(bd_address, sizeof(bd_address), "%02X:%02X:%02X:%02X:%02X:%02X",
-				chaabi_bd_address[0], chaabi_bd_address[1],
-				chaabi_bd_address[2], chaabi_bd_address[3],
-				chaabi_bd_address[4], chaabi_bd_address[5]);
-			res = fprintf(bd_addr_file, "%s", bd_address);
+			snprintf(bd_address_str, sizeof(bd_address_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+				bd_addr_buf[0], bd_addr_buf[1],
+				bd_addr_buf[2], bd_addr_buf[3],
+				bd_addr_buf[4], bd_addr_buf[5]);
+			res = fprintf(bd_addr_file, "%s", bd_address_str);
 			if (res)
 				LOGD("BD address written successfully");
 			else
@@ -108,9 +126,15 @@ int main(int argc, char **argv)
 			LOGE("Error %s while opening %s\n", strerror(errno), bd_addr_file_name);
 			return errno;
 		}
+		/* deallocate buffer set by get_bd_address() */
+		free(bd_addr_buf);
 	} else {
 		LOGE("No chaabi BD address");
 	}
+#else
+	LOGE("Chaabi not supported, "
+			"BD address diversification is not available");
+#endif /* (BUILD_WITH_CHAABI_SUPPORT || BUILD_WITH_TOKEN_SUPPORT || BUILD_WITH_TXEI_SUPPORT) */
 
 	return NO_ERR;
 }
