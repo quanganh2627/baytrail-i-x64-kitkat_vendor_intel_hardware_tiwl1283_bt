@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #undef LOGV
 #define LOG_NDEBUG 0
@@ -121,6 +122,12 @@ int main(int argc, char **argv)
 				LOGE("Error %s, failed to write BD address", strerror(errno));
 			fflush(bd_addr_file);
 			fclose(bd_addr_file);
+                        //change BD addr file permission,ensure it can be opened later for reading
+                        res=chmod(bd_addr_file_name, 0664);
+                        if(res < 0)
+                              LOGE("BD addr_file change permission failure");
+                        else
+                              LOGD("BD addr_file  change permission success");
 		}
 		else {
 			LOGE("Error %s while opening %s\n", strerror(errno), bd_addr_file_name);
